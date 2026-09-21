@@ -36,7 +36,7 @@ jobs:
       - name: Build ${{ matrix.outname }}
         env:
           CGO_ENABLED: '0'
-          GOOS: android
+          GOOS: linux
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
         run: |
