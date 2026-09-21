@@ -15,11 +15,14 @@ jobs:
       matrix:
         include:
           - goarch: arm64
+            cc: aarch64-linux-android21-clang
             outname: libwireproxy-arm64.so
           - goarch: arm
             goarm: 7
+            cc: armv7a-linux-androideabi21-clang
             outname: libwireproxy-armv7.so
           - goarch: amd64
+            cc: x86_64-linux-android21-clang
             outname: libwireproxy-x86_64.so
 
     steps:
@@ -30,15 +33,22 @@ jobs:
         with:
           go-version: stable
 
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        id: ndk
+        with:
+          ndk-version: r26b
+
       - name: Download deps
         run: go mod download
 
       - name: Build ${{ matrix.outname }}
         env:
-          CGO_ENABLED: '0'
-          GOOS: linux
+          CGO_ENABLED: '1'
+          GOOS: android
           GOARCH: ${{ matrix.goarch }}
           GOARM: ${{ matrix.goarm }}
+          CC: ${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.cc }}
         run: |
           go build -buildmode=pie -ldflags="-s -w" -o ${{ matrix.outname }} -v ./cmd/wireproxy
           file ${{ matrix.outname }}
