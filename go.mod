@@ -7,7 +7,6 @@ require (
 	github.com/akamensky/argparse v1.4.0
 	github.com/amnezia-vpn/amneziawg-go/v3 v3.1.20260814
 	github.com/go-ini/ini v1.67.0
-	github.com/landlock-lsm/go-landlock v0.6.0
 	github.com/things-go/go-socks5 v0.0.5
 	golang.org/x/net v0.47.0
 	suah.dev/protect v1.2.4
@@ -20,5 +19,4 @@ require (
 	golang.org/x/time v0.9.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	gvisor.dev/gvisor v0.0.0-20250718015824-35000683b6d7 // indirect
-	kernel.org/pub/linux/libs/security/libcap/psx v1.2.77 // indirect
 )

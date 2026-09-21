@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/landlock-lsm/go-landlock/landlock"
 	"log"
 	"net"
 	"net/http"
@@ -67,54 +66,7 @@ func configFilePath() (string, bool) {
     return "", false
 }
 
-func lock(stage string) {
-	switch stage {
-	case "boot":
-		exePath := executablePath()
-		// OpenBSD
-		unveilOrPanic("/", "r")
-		unveilOrPanic(exePath, "x")
-		// only allow standard stdio operation, file reading, networking, and exec
-		// also remove unveil permission to lock unveil
-		pledgeOrPanic("stdio rpath inet dns proc exec")
-		// Linux
-		panicIfError(landlock.V1.BestEffort().RestrictPaths(
-			landlock.RODirs("/"),
-		))
-	case "boot-daemon":
-	case "read-config":
-		// OpenBSD
-		pledgeOrPanic("stdio rpath inet dns")
-	case "ready":
-		// no file access is allowed from now on, only networking
-		// OpenBSD
-		pledgeOrPanic("stdio inet dns")
-		// Linux
-		net.DefaultResolver.PreferGo = true // needed to lock down dependencies
-		panicIfError(landlock.V1.BestEffort().RestrictPaths(
-			landlock.ROFiles("/etc/resolv.conf").IgnoreIfMissing(),
-			landlock.ROFiles("/dev/fd").IgnoreIfMissing(),
-			landlock.ROFiles("/dev/zero").IgnoreIfMissing(),
-			landlock.ROFiles("/dev/urandom").IgnoreIfMissing(),
-			landlock.ROFiles("/etc/localtime").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/self/stat").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/self/status").IgnoreIfMissing(),
-			landlock.ROFiles("/usr/share/locale").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/self/cmdline").IgnoreIfMissing(),
-			landlock.ROFiles("/usr/share/zoneinfo").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/sys/kernel/version").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/sys/kernel/ngroups_max").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/sys/kernel/cap_last_cap").IgnoreIfMissing(),
-			landlock.ROFiles("/proc/sys/vm/overcommit_memory").IgnoreIfMissing(),
-			landlock.RWFiles("/dev/log").IgnoreIfMissing(),
-			landlock.RWFiles("/dev/null").IgnoreIfMissing(),
-			landlock.RWFiles("/dev/full").IgnoreIfMissing(),
-			landlock.RWFiles("/proc/self/fd").IgnoreIfMissing(),
-		))
-	default:
-		panic("invalid stage")
-	}
-}
+func lock(stage string) { }
 
 func extractPort(addr string) uint16 {
 	_, portStr, err := net.SplitHostPort(addr)
@@ -130,27 +82,7 @@ func extractPort(addr string) uint16 {
 	return uint16(port)
 }
 
-func lockNetwork(sections []wireproxyawg.RoutineSpawner, infoAddr *string) {
-	var rules []landlock.Rule
-	if infoAddr != nil && *infoAddr != "" {
-		rules = append(rules, landlock.BindTCP(extractPort(*infoAddr)))
-	}
-
-	for _, section := range sections {
-		switch section := section.(type) {
-		case *wireproxyawg.TCPServerTunnelConfig:
-			rules = append(rules, landlock.ConnectTCP(extractPort(section.Target)))
-		case *wireproxyawg.HTTPConfig:
-			rules = append(rules, landlock.BindTCP(extractPort(section.BindAddress)))
-		case *wireproxyawg.TCPClientTunnelConfig:
-			rules = append(rules, landlock.ConnectTCP(uint16(section.BindAddress.Port)))
-		case *wireproxyawg.Socks5Config:
-			rules = append(rules, landlock.BindTCP(extractPort(section.BindAddress)))
-		}
-	}
-
-	panicIfError(landlock.V4.BestEffort().RestrictNet(rules...))
-}
+func lockNetwork(sections []wireproxyawg.RoutineSpawner, infoAddr *string) { }
 
 func main() {
 	s := make(chan os.Signal, 1)
