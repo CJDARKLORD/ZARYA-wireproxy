@@ -1,0 +1,52 @@
+name: Build for Android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - android
+
+jobs:
+  build:
+    name: Build Android ${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goarch: arm64
+            outname: libwireproxy-arm64.so
+          - goarch: arm
+            goarm: 7
+            outname: libwireproxy-armv7.so
+          - goarch: amd64
+            outname: libwireproxy-x86_64.so
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Download deps
+        run: go mod download
+
+      - name: Build ${{ matrix.outname }}
+        env:
+          CGO_ENABLED: '0'
+          GOOS: android
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        run: |
+          go build -buildmode=pie -ldflags="-s -w" -o ${{ matrix.outname }} -v ./cmd/wireproxy
+          file ${{ matrix.outname }}
+          ls -lh ${{ matrix.outname }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.outname }}
+          path: ${{ matrix.outname }}
+          if-no-files-found: error
